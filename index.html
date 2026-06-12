@@ -564,6 +564,9 @@
     <div class="top-bar">
         <h1>实时天气</h1>
         <div class="top-actions">
+            <button class="icon-btn" id="locateToggleBtn" onclick="toggleLocateSetting()" title="自动定位">
+                <span id="locateToggleIcon">📍</span>
+            </button>
             <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">
                 <span id="themeIcon">🌙</span>
             </button>
@@ -573,7 +576,7 @@
     <div class="search-box">
         <div class="search-input-wrap">
             <input type="text" class="search-input" id="cityInput" placeholder="请输入城市名称，如：北京、上海、New York..." autocomplete="off">
-            <button class="locate-btn" id="locateBtn" onclick="handleAutoLocate()" title="自动定位">
+            <button class="locate-btn" id="locateBtn" onclick="handleAutoLocate(true)" title="定位当前位置">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
             </button>
             <div class="search-suggest" id="searchSuggest"></div>
@@ -867,6 +870,41 @@ document.addEventListener('click', e => {
 /* ==================== Service Worker ==================== */
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
+}
+
+/* ==================== Locate Setting ==================== */
+function initLocateSetting() {
+    const enabled = localStorage.getItem('autoLocate') !== 'false';
+    updateLocateToggleUI(enabled);
+}
+
+function updateLocateToggleUI(enabled) {
+    const btn = document.getElementById('locateToggleBtn');
+    const icon = document.getElementById('locateToggleIcon');
+    if (!btn || !icon) return;
+    if (enabled) {
+        icon.textContent = '📍';
+        btn.style.opacity = '1';
+        btn.title = '自动定位：开启（点击关闭）';
+    } else {
+        icon.textContent = '📍';
+        btn.style.opacity = '0.4';
+        btn.title = '自动定位：关闭（点击开启）';
+    }
+}
+
+function toggleLocateSetting() {
+    const enabled = localStorage.getItem('autoLocate') !== 'false';
+    const newVal = !enabled;
+    localStorage.setItem('autoLocate', String(newVal));
+    updateLocateToggleUI(newVal);
+    if (newVal) {
+        handleAutoLocate();
+    }
+}
+
+function isAutoLocateEnabled() {
+    return localStorage.getItem('autoLocate') !== 'false';
 }
 
 /* ==================== Theme ==================== */
@@ -1384,8 +1422,14 @@ async function handleSearch() {
     await fetchAll(geo.latitude, geo.longitude, geo.name, geo.country);
 }
 
-async function handleAutoLocate() {
-    if (!navigator.geolocation) { showStatus('error', '您的设备不支持定位'); return; }
+async function handleAutoLocate(isManual = false) {
+    if (!isManual && !isAutoLocateEnabled()) {
+        return; // 自动定位已关闭，静默跳过
+    }
+    if (!navigator.geolocation) {
+        if (isManual) showStatus('error', '您的设备不支持定位');
+        return;
+    }
     if (!navigator.onLine) { showStatus('offline'); return; }
 
     els.locateBtn.disabled = true;
@@ -1403,7 +1447,7 @@ async function handleAutoLocate() {
             if (err.code === 1) msg = '定位权限被拒绝，请在浏览器设置中开启';
             else if (err.code === 2) msg = '无法获取位置信息';
             else if (err.code === 3) msg = '定位超时';
-            showStatus('error', msg);
+            if (isManual || isAutoLocateEnabled()) showStatus('error', msg);
             els.locateBtn.disabled = false;
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
@@ -1459,6 +1503,7 @@ els.cityInput.addEventListener('keydown', e => {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
+    initLocateSetting();
     loadSavedCities();
     loadHistory();
 
@@ -1475,8 +1520,8 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch { /* ignore */ }
     }
 
-    // No last city: try auto locate
-    handleAutoLocate();
+    // No last city: try auto locate if enabled
+    handleAutoLocate(false);
 });
 </script>
 
