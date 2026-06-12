@@ -231,6 +231,92 @@
         .orb-2 { animation: orbFloat 22s ease-in-out infinite reverse; }
         .orb-3 { animation: orbFloat 16s ease-in-out infinite; animation-delay: -6s; }
 
+        /* ===== Weather Particle FX ===== */
+        .weather-fx {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        /* Rain drops */
+        .rain-drop {
+            position: absolute;
+            width: 1.5px;
+            background: linear-gradient(to bottom, transparent, rgba(147,197,253,0.6), rgba(147,197,253,0.2));
+            border-radius: 1px;
+            opacity: 0;
+            animation: rainFall linear infinite;
+        }
+        @keyframes rainFall {
+            0% { transform: translateY(-10vh); opacity: 0; }
+            5% { opacity: 0.8; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(110vh); opacity: 0; }
+        }
+
+        /* Snow flakes */
+        .snow-flake {
+            position: absolute;
+            width: 5px; height: 5px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            opacity: 0;
+            animation: snowFall linear infinite;
+        }
+        @keyframes snowFall {
+            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.9; }
+            100% { transform: translateY(110vh) translateX(30px) rotate(360deg); opacity: 0; }
+        }
+
+        /* Sun rays (light particles) */
+        .sun-particle {
+            position: absolute;
+            width: 3px; height: 3px;
+            background: rgba(251,191,36,0.6);
+            border-radius: 50%;
+            box-shadow: 0 0 8px 2px rgba(251,191,36,0.3);
+            opacity: 0;
+            animation: sunFloat ease-in-out infinite;
+        }
+        @keyframes sunFloat {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            20% { opacity: 0.8; transform: translateY(80vh) scale(1); }
+            80% { opacity: 0.4; transform: translateY(20vh) scale(0.8); }
+            100% { transform: translateY(-10vh) scale(0); opacity: 0; }
+        }
+
+        /* Thunder flash */
+        .thunder-flash {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.15);
+            opacity: 0;
+            animation: thunderFlash 4s ease-in-out infinite;
+        }
+        @keyframes thunderFlash {
+            0%, 92%, 100% { opacity: 0; }
+            93% { opacity: 1; }
+            94% { opacity: 0; }
+            96% { opacity: 0.6; }
+            97% { opacity: 0; }
+        }
+
+        /* Fog drift */
+        .fog-layer {
+            position: absolute;
+            width: 200%; height: 100%;
+            background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 50%, rgba(255,255,255,0.05) 0%, transparent 40%);
+            animation: fogDrift 25s ease-in-out infinite alternate;
+        }
+        @keyframes fogDrift {
+            0% { transform: translateX(-20%); }
+            100% { transform: translateX(0%); }
+        }
+
         /* Icon ambient glow */
         .weather-icon-wrap {
             filter: drop-shadow(0 0 20px var(--glow-color, rgba(14,165,233,0.3)));
@@ -774,6 +860,9 @@
 <div class="orb orb-2"></div>
 <div class="orb orb-3"></div>
 
+<!-- Weather particle effects -->
+<div class="weather-fx" id="weatherFx"></div>
+
 <div class="container" id="swipeArea">
     <div class="install-banner" id="installBanner">
         <span>添加到手机桌面，像 App 一样使用</span>
@@ -1274,6 +1363,64 @@ function setWeatherTheme(code) {
         fog:     'rgba(148,163,184,0.2)'
     };
     document.documentElement.style.setProperty('--glow-color', glowMap[theme] || glowMap.cloudy);
+    renderWeatherFx(theme);
+}
+
+function renderWeatherFx(theme) {
+    const fx = document.getElementById('weatherFx');
+    if (!fx) return;
+    fx.innerHTML = '';
+
+    if (theme === 'rain') {
+        for (let i = 0; i < 24; i++) {
+            const drop = document.createElement('div');
+            drop.className = 'rain-drop';
+            drop.style.left = Math.random() * 100 + '%';
+            drop.style.height = (12 + Math.random() * 18) + 'px';
+            drop.style.animationDuration = (0.6 + Math.random() * 0.5) + 's';
+            drop.style.animationDelay = (Math.random() * 2) + 's';
+            fx.appendChild(drop);
+        }
+    } else if (theme === 'snow') {
+        for (let i = 0; i < 16; i++) {
+            const flake = document.createElement('div');
+            flake.className = 'snow-flake';
+            flake.style.left = Math.random() * 100 + '%';
+            const size = 3 + Math.random() * 5;
+            flake.style.width = size + 'px';
+            flake.style.height = size + 'px';
+            flake.style.animationDuration = (3 + Math.random() * 4) + 's';
+            flake.style.animationDelay = (Math.random() * 5) + 's';
+            flake.style.opacity = 0.4 + Math.random() * 0.5;
+            fx.appendChild(flake);
+        }
+    } else if (theme === 'sunny') {
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('div');
+            p.className = 'sun-particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDuration = (8 + Math.random() * 12) + 's';
+            p.style.animationDelay = (Math.random() * 8) + 's';
+            fx.appendChild(p);
+        }
+    } else if (theme === 'thunder') {
+        for (let i = 0; i < 20; i++) {
+            const drop = document.createElement('div');
+            drop.className = 'rain-drop';
+            drop.style.left = Math.random() * 100 + '%';
+            drop.style.height = (10 + Math.random() * 16) + 'px';
+            drop.style.animationDuration = (0.5 + Math.random() * 0.4) + 's';
+            drop.style.animationDelay = (Math.random() * 1.5) + 's';
+            fx.appendChild(drop);
+        }
+        const flash = document.createElement('div');
+        flash.className = 'thunder-flash';
+        fx.appendChild(flash);
+    } else if (theme === 'fog') {
+        const layer = document.createElement('div');
+        layer.className = 'fog-layer';
+        fx.appendChild(layer);
+    }
 }
 
 /* ==================== SVG Icons ==================== */
