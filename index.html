@@ -745,29 +745,7 @@
         window.prompt = function() { console.warn('[Security] prompt blocked'); return null; };
     }
 
-    // 4. Fetch 域名白名单校验（防止恶意链接、虚假天气弹窗、植入式风险内容）
-    const ALLOWED_DOMAINS = [
-        'geocoding-api.open-meteo.com',
-        'api.open-meteo.com',
-        'api.bigdatacloud.net'
-    ];
-    const originalFetch = window.fetch;
-    window.fetch = function(input, init) {
-        let url;
-        try {
-            url = new URL(input instanceof Request ? input.url : input, location.href);
-        } catch (e) {
-            return Promise.reject(new Error('Invalid URL'));
-        }
-        const isAllowed = ALLOWED_DOMAINS.some(d => url.hostname === d || url.hostname.endsWith('.' + d));
-        if (!isAllowed && url.origin !== location.origin) {
-            console.warn('[Security] Blocked fetch to unauthorized domain:', url.hostname);
-            return Promise.reject(new Error('Unauthorized domain'));
-        }
-        return originalFetch.apply(this, arguments);
-    };
-
-    // 5. 防点击劫持（禁止被嵌入 iframe）
+    // 4. 防点击劫持（禁止被嵌入 iframe）
     if (window.top !== window.self) {
         window.top.location = window.self.location;
     }
