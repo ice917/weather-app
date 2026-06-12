@@ -48,6 +48,215 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+        /* ===== Ambient Orbs ===== */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 1.2s ease, background 1.2s ease, transform 1.2s ease;
+        }
+        .orb-1 { width: 300px; height: 300px; top: -80px; right: -60px; }
+        .orb-2 { width: 240px; height: 240px; bottom: 10%; left: -80px; animation-delay: -5s; }
+        .orb-3 { width: 180px; height: 180px; top: 40%; right: 10%; animation-delay: -10s; }
+
+        body:has([data-weather="sunny"]) .orb,
+        body:has([data-weather="cloudy"]) .orb,
+        body:has([data-weather="rain"]) .orb,
+        body:has([data-weather="snow"]) .orb,
+        body:has([data-weather="thunder"]) .orb,
+        body:has([data-weather="fog"]) .orb { opacity: 0.5; }
+
+        /* ===== Weather Themes (Light) ===== */
+        [data-theme="light"][data-weather="sunny"] {
+            --primary: #f59e0b;
+            --primary-dark: #d97706;
+            --bg-gradient-start: #fff7e6;
+            --bg-gradient-end: #e0f7ff;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.9);
+            --shadow: 0 10px 40px -10px rgba(245, 158, 11, 0.25);
+        }
+        [data-theme="light"][data-weather="cloudy"] {
+            --primary: #64748b;
+            --primary-dark: #475569;
+            --bg-gradient-start: #f0f4f8;
+            --bg-gradient-end: #e8eef5;
+            --glass-bg: rgba(255, 255, 255, 0.72);
+            --shadow: 0 10px 40px -10px rgba(100, 116, 139, 0.2);
+        }
+        [data-theme="light"][data-weather="rain"] {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --bg-gradient-start: #e2e8f0;
+            --bg-gradient-end: #cbd5e1;
+            --glass-bg: rgba(255, 255, 255, 0.72);
+            --shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.2);
+        }
+        [data-theme="light"][data-weather="snow"] {
+            --primary: #94a3b8;
+            --primary-dark: #64748b;
+            --bg-gradient-start: #f1f5f9;
+            --bg-gradient-end: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.78);
+            --shadow: 0 10px 40px -10px rgba(148, 163, 184, 0.25);
+        }
+        [data-theme="light"][data-weather="thunder"] {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-gradient-start: #e0e7ff;
+            --bg-gradient-end: #c7d2fe;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.25);
+        }
+        [data-theme="light"][data-weather="fog"] {
+            --primary: #94a3b8;
+            --primary-dark: #64748b;
+            --bg-gradient-start: #f1f5f9;
+            --bg-gradient-end: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --shadow: 0 10px 40px -10px rgba(148, 163, 184, 0.15);
+        }
+
+        /* Weather orb colors (Light) */
+        [data-theme="light"][data-weather="sunny"] .orb-1 { background: radial-gradient(circle, rgba(251,191,36,0.6) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="sunny"] .orb-2 { background: radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="sunny"] .orb-3 { background: radial-gradient(circle, rgba(251,191,36,0.5) 0%, transparent 70%); }
+
+        [data-theme="light"][data-weather="cloudy"] .orb-1 { background: radial-gradient(circle, rgba(148,163,184,0.5) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="cloudy"] .orb-2 { background: radial-gradient(circle, rgba(100,116,139,0.35) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="cloudy"] .orb-3 { background: radial-gradient(circle, rgba(148,163,184,0.4) 0%, transparent 70%); }
+
+        [data-theme="light"][data-weather="rain"] .orb-1 { background: radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="rain"] .orb-2 { background: radial-gradient(circle, rgba(37,99,235,0.35) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="rain"] .orb-3 { background: radial-gradient(circle, rgba(96,165,250,0.4) 0%, transparent 70%); }
+
+        [data-theme="light"][data-weather="snow"] .orb-1 { background: radial-gradient(circle, rgba(203,213,225,0.6) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="snow"] .orb-2 { background: radial-gradient(circle, rgba(148,163,184,0.4) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="snow"] .orb-3 { background: radial-gradient(circle, rgba(226,232,240,0.5) 0%, transparent 70%); }
+
+        [data-theme="light"][data-weather="thunder"] .orb-1 { background: radial-gradient(circle, rgba(99,102,241,0.55) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="thunder"] .orb-2 { background: radial-gradient(circle, rgba(79,70,229,0.4) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="thunder"] .orb-3 { background: radial-gradient(circle, rgba(129,140,248,0.45) 0%, transparent 70%); }
+
+        [data-theme="light"][data-weather="fog"] .orb-1 { background: radial-gradient(circle, rgba(203,213,225,0.4) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="fog"] .orb-2 { background: radial-gradient(circle, rgba(148,163,184,0.3) 0%, transparent 70%); }
+        [data-theme="light"][data-weather="fog"] .orb-3 { background: radial-gradient(circle, rgba(226,232,240,0.35) 0%, transparent 70%); }
+
+        /* ===== Weather Themes (Dark) ===== */
+        [data-theme="dark"][data-weather="sunny"] {
+            --primary: #fbbf24;
+            --primary-dark: #f59e0b;
+            --bg-gradient-start: #2a1f00;
+            --bg-gradient-end: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.65);
+            --shadow: 0 10px 40px -10px rgba(251, 191, 36, 0.15);
+        }
+        [data-theme="dark"][data-weather="cloudy"] {
+            --primary: #94a3b8;
+            --primary-dark: #64748b;
+            --bg-gradient-start: #1e293b;
+            --bg-gradient-end: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.65);
+            --shadow: 0 10px 40px -10px rgba(148, 163, 184, 0.12);
+        }
+        [data-theme="dark"][data-weather="rain"] {
+            --primary: #60a5fa;
+            --primary-dark: #3b82f6;
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e3a5f;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.15);
+        }
+        [data-theme="dark"][data-weather="snow"] {
+            --primary: #cbd5e1;
+            --primary-dark: #94a3b8;
+            --bg-gradient-start: #1e293b;
+            --bg-gradient-end: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.75);
+            --shadow: 0 10px 40px -10px rgba(148, 163, 184, 0.15);
+        }
+        [data-theme="dark"][data-weather="thunder"] {
+            --primary: #818cf8;
+            --primary-dark: #6366f1;
+            --bg-gradient-start: #1e1b4b;
+            --bg-gradient-end: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.2);
+        }
+        [data-theme="dark"][data-weather="fog"] {
+            --primary: #94a3b8;
+            --primary-dark: #64748b;
+            --bg-gradient-start: #1e293b;
+            --bg-gradient-end: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.75);
+            --shadow: 0 10px 40px -10px rgba(148, 163, 184, 0.1);
+        }
+
+        /* Weather orb colors (Dark) */
+        [data-theme="dark"][data-weather="sunny"] .orb-1 { background: radial-gradient(circle, rgba(251,191,36,0.35) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="sunny"] .orb-2 { background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="sunny"] .orb-3 { background: radial-gradient(circle, rgba(251,191,36,0.25) 0%, transparent 70%); }
+
+        [data-theme="dark"][data-weather="cloudy"] .orb-1 { background: radial-gradient(circle, rgba(148,163,184,0.3) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="cloudy"] .orb-2 { background: radial-gradient(circle, rgba(100,116,139,0.2) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="cloudy"] .orb-3 { background: radial-gradient(circle, rgba(148,163,184,0.25) 0%, transparent 70%); }
+
+        [data-theme="dark"][data-weather="rain"] .orb-1 { background: radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="rain"] .orb-2 { background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="rain"] .orb-3 { background: radial-gradient(circle, rgba(96,165,250,0.25) 0%, transparent 70%); }
+
+        [data-theme="dark"][data-weather="snow"] .orb-1 { background: radial-gradient(circle, rgba(203,213,225,0.35) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="snow"] .orb-2 { background: radial-gradient(circle, rgba(148,163,184,0.2) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="snow"] .orb-3 { background: radial-gradient(circle, rgba(226,232,240,0.25) 0%, transparent 70%); }
+
+        [data-theme="dark"][data-weather="thunder"] .orb-1 { background: radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="thunder"] .orb-2 { background: radial-gradient(circle, rgba(79,70,229,0.2) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="thunder"] .orb-3 { background: radial-gradient(circle, rgba(129,140,248,0.25) 0%, transparent 70%); }
+
+        [data-theme="dark"][data-weather="fog"] .orb-1 { background: radial-gradient(circle, rgba(203,213,225,0.25) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="fog"] .orb-2 { background: radial-gradient(circle, rgba(148,163,184,0.15) 0%, transparent 70%); }
+        [data-theme="dark"][data-weather="fog"] .orb-3 { background: radial-gradient(circle, rgba(226,232,240,0.2) 0%, transparent 70%); }
+
+        /* Orb float animation */
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(15px, -20px) scale(1.05); }
+            50% { transform: translate(-10px, 10px) scale(0.95); }
+            75% { transform: translate(5px, -15px) scale(1.02); }
+        }
+        .orb-1 { animation: orbFloat 18s ease-in-out infinite; }
+        .orb-2 { animation: orbFloat 22s ease-in-out infinite reverse; }
+        .orb-3 { animation: orbFloat 16s ease-in-out infinite; animation-delay: -6s; }
+
+        /* Icon ambient glow */
+        .weather-icon-wrap {
+            filter: drop-shadow(0 0 20px var(--glow-color, rgba(14,165,233,0.3)));
+            transition: filter 0.8s ease;
+        }
+
+        /* Temp value text glow */
+        .temp-value {
+            text-shadow: 0 0 40px var(--glow-color, rgba(14,165,233,0.2));
+            transition: text-shadow 0.8s ease;
+        }
+
+        /* Enhanced glass card */
+        .card {
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+            border-radius: inherit;
+        }
+
         body {
             font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
@@ -560,6 +769,11 @@
 </head>
 <body>
 
+<!-- Ambient light orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
 <div class="container" id="swipeArea">
     <div class="install-banner" id="installBanner">
         <span>添加到手机桌面，像 App 一样使用</span>
@@ -1037,6 +1251,31 @@ function getWeatherInfo(code) {
     return WMO_CODES[code] || { label: '未知', icon: 'cloudy' };
 }
 
+function getWeatherTheme(code) {
+    if (code === 0 || code === 1) return 'sunny';
+    if (code === 2 || code === 3) return 'cloudy';
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
+    if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return 'snow';
+    if (code >= 95 && code <= 99) return 'thunder';
+    if (code === 45 || code === 48) return 'fog';
+    return 'cloudy';
+}
+
+function setWeatherTheme(code) {
+    const theme = getWeatherTheme(code);
+    document.documentElement.setAttribute('data-weather', theme);
+    // Update glow color based on theme
+    const glowMap = {
+        sunny:   'rgba(245,158,11,0.35)',
+        cloudy:  'rgba(100,116,139,0.3)',
+        rain:    'rgba(59,130,246,0.3)',
+        snow:    'rgba(148,163,184,0.3)',
+        thunder: 'rgba(99,102,241,0.3)',
+        fog:     'rgba(148,163,184,0.2)'
+    };
+    document.documentElement.style.setProperty('--glow-color', glowMap[theme] || glowMap.cloudy);
+}
+
 /* ==================== SVG Icons ==================== */
 const ICONS = {
     sunny: `<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="12" fill="#f59e0b"/><g stroke="#f59e0b" stroke-width="3" stroke-linecap="round"><line x1="32" y1="4" x2="32" y2="12"/><line x1="32" y1="52" x2="32" y2="60"/><line x1="4" y1="32" x2="12" y2="32"/><line x1="52" y1="32" x2="60" y2="32"/><line x1="12.2" y1="12.2" x2="17.8" y2="17.8"/><line x1="46.2" y1="46.2" x2="51.8" y2="51.8"/><line x1="12.2" y1="51.8" x2="17.8" y2="46.2"/><line x1="46.2" y1="17.8" x2="51.8" y2="12.2"/></g></svg>`,
@@ -1298,6 +1537,7 @@ async function fetchAirQuality(lat, lon) {
 /* ==================== Render ==================== */
 function renderCurrent(name, country, current, daily) {
     const info = getWeatherInfo(current.weather_code);
+    setWeatherTheme(current.weather_code);
     const now = new Date();
     document.getElementById('cityName').textContent = `${name}${country ? ' · ' + country : ''}`;
     document.getElementById('dateText').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${['周日','周一','周二','周三','周四','周五','周六'][now.getDay()]}`;
@@ -1556,6 +1796,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initLocateSetting();
     loadSavedCities();
     loadHistory();
+    setWeatherTheme(0); // Default sunny ambient theme
 
     const last = localStorage.getItem('lastCity');
     if (last) {
