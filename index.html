@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时天气查询</title>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --bg-gradient-start: #e0f2fe;
+            --bg-gradient-end: #f0f9ff;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --text-main: #0f172a;
+            --text-secondary: #475569;
+            --text-light: #94a3b8;
+            --shadow: 0 10px 40px -10px rgba(14, 165, 233, 0.25);
+            --radius: 24px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-main);
+            padding: 24px 16px 48px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        /* ===== Header / Search ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 16px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            font-size: 16px;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+        }
+
+        .search-input::placeholder { color: var(--text-light); }
+
+        .search-btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
+        }
+
+        .search-btn:active { transform: translateY(0); }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== Status Messages ===== */
+        .status {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .status.show { display: flex; }
+
+        .status.info {
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--primary-dark);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.08);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .status.offline {
+            background: rgba(245, 158, 11, 0.08);
+            color: #d97706;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(14, 165, 233, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Main Weather Card ===== */
+        .weather-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .weather-card.show { display: block; }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .city-info h2 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .city-info .date-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .temp-block {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .temp-value {
+            font-size: 72px;
+            font-weight: 200;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .temp-unit {
+            font-size: 28px;
+            font-weight: 400;
+            margin-top: 8px;
+            color: var(--text-secondary);
+        }
+
+        .weather-icon-wrap {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+        }
+
+        .weather-icon-wrap svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .weather-desc-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-top: -8px;
+            margin-bottom: 24px;
+        }
+
+        /* ===== Detail Grid ===== */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            padding: 16px 10px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .detail-item:hover { transform: translateY(-3px); }
+
+        .detail-icon {
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 8px;
+            color: var(--primary);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* ===== Forecast Section ===== */
+        .forecast-section {
+            display: none;
+            animation: fadeInUp 0.5s ease 0.1s both;
+        }
+
+        .forecast-section.show { display: block; }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            padding-left: 6px;
+        }
+
+        .forecast-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .forecast-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px 14px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(14, 165, 233, 0.08);
+            transition: transform 0.2s;
+        }
+
+        .forecast-card:hover { transform: translateY(-4px); }
+
+        .forecast-date {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .forecast-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 10px;
+        }
+
+        .forecast-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .forecast-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .forecast-temp {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .forecast-temp span {
+            font-size: 13px;
+            color: var(--text-light);
+            font-weight: 500;
+            margin-left: 2px;
+        }
+
+        /* ===== Animations ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 560px) {
+            .header h1 { font-size: 22px; }
+            .search-box { flex-direction: column; }
+            .search-btn { width: 100%; }
+            .weather-card { padding: 24px 20px; }
+            .temp-value { font-size: 56px; }
+            .detail-grid { grid-template-columns: repeat(2, 1fr); }
+            .forecast-list { grid-template-columns: 1fr; }
+            .weather-main { justify-content: center; text-align: center; }
+            .card-header { flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>实时天气</h1>
+        <p>输入城市名称，获取全球实时天气与预报</p>
+    </div>
+
+    <div class="search-box">
+        <input type="text" class="search-input" id="cityInput" placeholder="请输入城市名称，如：北京、上海、New York..." autocomplete="off">
+        <button class="search-btn" id="searchBtn" onclick="handleSearch()">查询天气</button>
+    </div>
+
+    <div class="status info" id="loadingStatus">
+        <div class="spinner"></div>
+        <span>正在查询天气数据，请稍候...</span>
+    </div>
+
+    <div class="status error" id="errorStatus"></div>
+
+    <div class="status offline" id="offlineStatus">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        <span>网络已断开，请检查网络连接后重试</span>
+    </div>
+
+    <!-- Main Weather Card -->
+    <div class="weather-card" id="weatherCard">
+        <div class="card-header">
+            <div class="city-info">
+                <h2 id="cityName">--</h2>
+                <div class="date-text" id="dateText">--</div>
+            </div>
+        </div>
+
+        <div class="weather-main">
+            <div class="temp-block">
+                <span class="temp-value" id="tempValue">--</span>
+                <span class="temp-unit">°C</span>
+            </div>
+            <div class="weather-icon-wrap" id="iconWrap"></div>
+        </div>
+
+        <div class="weather-desc-text" id="weatherDesc">--</div>
+
+        <div class="detail-grid">
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                </div>
+                <div class="detail-label">相对湿度</div>
+                <div class="detail-value" id="humidity">--%</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+                </div>
+                <div class="detail-label">风向风力</div>
+                <div class="detail-value" id="wind">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                </div>
+                <div class="detail-label">体感温度</div>
+                <div class="detail-value" id="feelsLike">--°C</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="detail-label">更新时间</div>
+                <div class="detail-value" id="updateTime">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+                </div>
+                <div class="detail-label">最高气温</div>
+                <div class="detail-value" id="tempMax">--°C</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="detail-label">最低气温</div>
+                <div class="detail-value" id="tempMin">--°C</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Section -->
+    <div class="forecast-section" id="forecastSection">
+        <div class="section-title">未来3天预报</div>
+        <div class="forecast-list" id="forecastList"></div>
+    </div>
+</div>
+
+<script>
+/* ==================== WMO Weather Code Mapping ==================== */
+const WMO_CODES = {
+    0:  { label: '晴', icon: 'sunny' },
+    1:  { label: ' mainly clear', icon: 'cloudy-sun' },
+    2:  { label: '多云', icon: 'cloudy' },
+    3:  { label: '阴', icon: 'overcast' },
+    45: { label: '雾', icon: 'fog' },
+    48: { label: '雾凇', icon: 'fog' },
+    51: { label: '毛毛雨', icon: 'drizzle' },
+    53: { label: '中雨', icon: 'rain' },
+    55: { label: '大雨', icon: 'rain' },
+    56: { label: '冻雨', icon: 'sleet' },
+    57: { label: '强冻雨', icon: 'sleet' },
+    61: { label: '小雨', icon: 'rain' },
+    63: { label: '中雨', icon: 'rain' },
+    65: { label: '大雨', icon: 'rain' },
+    66: { label: '冻雨', icon: 'sleet' },
+    67: { label: '强冻雨', icon: 'sleet' },
+    71: { label: '小雪', icon: 'snow' },
+    73: { label: '中雪', icon: 'snow' },
+    75: { label: '大雪', icon: 'snow' },
+    77: { label: '雪粒', icon: 'snow' },
+    80: { label: '阵雨', icon: 'rain' },
+    81: { label: '强阵雨', icon: 'rain' },
+    82: { label: '暴雨', icon: 'rain' },
+    85: { label: '阵雪', icon: 'snow' },
+    86: { label: '强阵雪', icon: 'snow' },
+    95: { label: '雷阵雨', icon: 'thunder' },
+    96: { label: '雷阵雨伴冰雹', icon: 'thunder' },
+    99: { label: '强雷暴', icon: 'thunder' },
+};
+
+function getWeatherInfo(code) {
+    return WMO_CODES[code] || { label: '未知', icon: 'cloudy' };
+}
+
+/* ==================== SVG Icons ==================== */
+const ICONS = {
+    sunny: `<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="12" fill="#f59e0b"/><g stroke="#f59e0b" stroke-width="3" stroke-linecap="round"><line x1="32" y1="4" x2="32" y2="12"/><line x1="32" y1="52" x2="32" y2="60"/><line x1="4" y1="32" x2="12" y2="32"/><line x1="52" y1="32" x2="60" y2="32"/><line x1="12.2" y1="12.2" x2="17.8" y2="17.8"/><line x1="46.2" y1="46.2" x2="51.8" y2="51.8"/><line x1="12.2" y1="51.8" x2="17.8" y2="46.2"/><line x1="46.2" y1="17.8" x2="51.8" y2="12.2"/></g></svg>`,
+
+    'cloudy-sun': `<svg viewBox="0 0 64 64" fill="none"><circle cx="22" cy="22" r="10" fill="#f59e0b"/><path d="M46 48H26c-5.5 0-10-4.5-10-10 0-4.9 3.6-9 8.3-9.8.7-4.8 4.8-8.5 9.6-8.5 3.8 0 7.3 2.2 8.9 5.6 1-.3 2.1-.6 3.2-.6 5.5 0 10 4.5 10 10s-4.5 10-10 10z" fill="#94a3b8"/></svg>`,
+
+    cloudy: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 48H22c-6.6 0-12-5.4-12-12 0-5.9 4.3-10.8 10-11.8.8-5.8 5.7-10.2 11.5-10.2 4.6 0 8.7 2.7 10.7 6.7 1.2-.4 2.5-.7 3.8-.7 6.6 0 12 5.4 12 12s-5.4 12-12 12z" fill="#94a3b8"/></svg>`,
+
+    overcast: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 50H18c-6.6 0-12-5.4-12-12 0-5.9 4.3-10.8 10-11.8.8-5.8 5.7-10.2 11.5-10.2 4.6 0 8.7 2.7 10.7 6.7 1.2-.4 2.5-.7 3.8-.7 6.6 0 12 5.4 12 12s-5.4 12-12 12z" fill="#64748b"/><path d="M52 42H24c-6.6 0-12-5.4-12-12 0-5.9 4.3-10.8 10-11.8.8-5.8 5.7-10.2 11.5-10.2 4.6 0 8.7 2.7 10.7 6.7 1.2-.4 2.5-.7 3.8-.7 6.6 0 12 5.4 12 12s-5.4 12-12 12z" fill="#94a3b8"/></svg>`,
+
+    fog: `<svg viewBox="0 0 64 64" fill="none"><path d="M14 24h36M10 32h44M14 40h36" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/></svg>`,
+
+    drizzle: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 40H26c-5.5 0-10-4.5-10-10 0-4.9 3.6-9 8.3-9.8.7-4.8 4.8-8.5 9.6-8.5 3.8 0 7.3 2.2 8.9 5.6 1-.3 2.1-.6 3.2-.6 5.5 0 10 4.5 10 10s-4.5 10-10 10z" fill="#94a3b8"/><g stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="46" x2="21" y2="52"/><line x1="32" y1="46" x2="31" y2="52"/><line x1="42" y1="46" x2="41" y2="52"/></g></svg>`,
+
+    rain: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 42H22c-6.6 0-12-5.4-12-12 0-5.9 4.3-10.8 10-11.8.8-5.8 5.7-10.2 11.5-10.2 4.6 0 8.7 2.7 10.7 6.7 1.2-.4 2.5-.7 3.8-.7 6.6 0 12 5.4 12 12s-5.4 12-12 12z" fill="#94a3b8"/><g stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="48" x2="20" y2="56"/><line x1="32" y1="48" x2="30" y2="56"/><line x1="42" y1="48" x2="40" y2="56"/></g></svg>`,
+
+    sleet: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 40H26c-5.5 0-10-4.5-10-10 0-4.9 3.6-9 8.3-9.8.7-4.8 4.8-8.5 9.6-8.5 3.8 0 7.3 2.2 8.9 5.6 1-.3 2.1-.6 3.2-.6 5.5 0 10 4.5 10 10s-4.5 10-10 10z" fill="#94a3b8"/><g fill="#60a5fa"><circle cx="22" cy="48" r="2"/><circle cx="32" cy="54" r="2"/><circle cx="42" cy="48" r="2"/></g></svg>`,
+
+    snow: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 40H26c-5.5 0-10-4.5-10-10 0-4.9 3.6-9 8.3-9.8.7-4.8 4.8-8.5 9.6-8.5 3.8 0 7.3 2.2 8.9 5.6 1-.3 2.1-.6 3.2-.6 5.5 0 10 4.5 10 10s-4.5 10-10 10z" fill="#94a3b8"/><g stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"><line x1="22" y1="46" x2="22" y2="54"/><line x1="32" y1="46" x2="32" y2="54"/><line x1="42" y1="46" x2="42" y2="54"/></g></svg>`,
+
+    thunder: `<svg viewBox="0 0 64 64" fill="none"><path d="M46 40H22c-6.6 0-12-5.4-12-12 0-5.9 4.3-10.8 10-11.8.8-5.8 5.7-10.2 11.5-10.2 4.6 0 8.7 2.7 10.7 6.7 1.2-.4 2.5-.7 3.8-.7 6.6 0 12 5.4 12 12s-5.4 12-12 12z" fill="#64748b"/><path d="M34 38L26 48h6l-2 10 10-12h-6l4-10H34z" fill="#f59e0b" stroke="#f59e0b" stroke-width="1" stroke-linejoin="round"/></svg>`,
+};
+
+/* ==================== Helpers ==================== */
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    const week = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+    return `${month}月${day}日 ${week}`;
+}
+
+function formatTime(date) {
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+}
+
+function getWindDir(deg) {
+    const dirs = ['北','东北','东','东南','南','西南','西','西北'];
+    return dirs[Math.round(deg / 45) % 8] + '风';
+}
+
+function getWindLevel(speedKmh) {
+    if (speedKmh < 1) return '0级';
+    if (speedKmh < 6) return '1级';
+    if (speedKmh < 12) return '2级';
+    if (speedKmh < 20) return '3级';
+    if (speedKmh < 29) return '4级';
+    if (speedKmh < 39) return '5级';
+    if (speedKmh < 50) return '6级';
+    if (speedKmh < 62) return '7级';
+    return '8级+';
+}
+
+/* ==================== UI State ==================== */
+const els = {
+    cityInput: document.getElementById('cityInput'),
+    searchBtn: document.getElementById('searchBtn'),
+    loading: document.getElementById('loadingStatus'),
+    error: document.getElementById('errorStatus'),
+    offline: document.getElementById('offlineStatus'),
+    weatherCard: document.getElementById('weatherCard'),
+    forecastSection: document.getElementById('forecastSection'),
+    forecastList: document.getElementById('forecastList'),
+};
+
+function showStatus(type, msg) {
+    els.loading.classList.remove('show');
+    els.error.classList.remove('show');
+    els.offline.classList.remove('show');
+
+    if (type === 'loading') els.loading.classList.add('show');
+    if (type === 'error') {
+        els.error.textContent = msg;
+        els.error.classList.add('show');
+    }
+    if (type === 'offline') els.offline.classList.add('show');
+}
+
+function hideAllStatus() {
+    els.loading.classList.remove('show');
+    els.error.classList.remove('show');
+    els.offline.classList.remove('show');
+}
+
+/* ==================== Network Detection ==================== */
+function updateOnlineStatus() {
+    if (!navigator.onLine) {
+        showStatus('offline');
+    } else {
+        els.offline.classList.remove('show');
+    }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+/* ==================== API Integration ==================== */
+async function geocodeCity(city) {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('地理编码服务异常');
+    const data = await res.json();
+    if (!data.results || data.results.length === 0) throw new Error(`未找到城市 "${city}"，请检查拼写`);
+    return data.results[0];
+}
+
+async function fetchWeather(lat, lon) {
+    const params = new URLSearchParams({
+        latitude: lat,
+        longitude: lon,
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m',
+        daily: 'weather_code,temperature_2m_max,temperature_2m_min',
+        timezone: 'auto',
+        forecast_days: '4'
+    });
+    const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('天气服务异常，请稍后重试');
+    return res.json();
+}
+
+/* ==================== Render ==================== */
+function renderCurrent(cityName, country, current, daily) {
+    const info = getWeatherInfo(current.weather_code);
+    const now = new Date();
+
+    document.getElementById('cityName').textContent = `${cityName}${country ? ' · ' + country : ''}`;
+    document.getElementById('dateText').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${['周日','周一','周二','周三','周四','周五','周六'][now.getDay()]}`;
+    document.getElementById('tempValue').textContent = Math.round(current.temperature_2m);
+    document.getElementById('weatherDesc').textContent = info.label;
+    document.getElementById('iconWrap').innerHTML = ICONS[info.icon] || ICONS.cloudy;
+    document.getElementById('humidity').textContent = current.relative_humidity_2m + '%';
+    document.getElementById('wind').textContent = `${getWindDir(current.wind_direction_10m)} ${getWindLevel(current.wind_speed_10m)}`;
+    document.getElementById('feelsLike').textContent = Math.round(current.apparent_temperature) + '°C';
+    document.getElementById('updateTime').textContent = formatTime(now);
+
+    if (daily && daily.temperature_2m_max && daily.temperature_2m_max.length > 0) {
+        document.getElementById('tempMax').textContent = Math.round(daily.temperature_2m_max[0]) + '°C';
+        document.getElementById('tempMin').textContent = Math.round(daily.temperature_2m_min[0]) + '°C';
+    }
+
+    els.weatherCard.classList.add('show');
+}
+
+function renderForecast(daily) {
+    const list = els.forecastList;
+    list.innerHTML = '';
+
+    for (let i = 1; i <= 3; i++) {
+        if (!daily.time[i]) break;
+        const info = getWeatherInfo(daily.weather_code[i]);
+        const card = document.createElement('div');
+        card.className = 'forecast-card';
+        card.innerHTML = `
+            <div class="forecast-date">${formatDate(daily.time[i])}</div>
+            <div class="forecast-icon">${ICONS[info.icon] || ICONS.cloudy}</div>
+            <div class="forecast-desc">${info.label}</div>
+            <div class="forecast-temp">
+                ${Math.round(daily.temperature_2m_max[i])}°<span>/ ${Math.round(daily.temperature_2m_min[i])}°</span>
+            </div>
+        `;
+        list.appendChild(card);
+    }
+
+    els.forecastSection.classList.add('show');
+}
+
+/* ==================== Search Handler ==================== */
+async function handleSearch() {
+    const city = els.cityInput.value.trim();
+    if (!city) {
+        showStatus('error', '请输入城市名称');
+        return;
+    }
+
+    if (!navigator.onLine) {
+        showStatus('offline');
+        return;
+    }
+
+    els.searchBtn.disabled = true;
+    showStatus('loading');
+    els.weatherCard.classList.remove('show');
+    els.forecastSection.classList.remove('show');
+
+    try {
+        const geo = await geocodeCity(city);
+        const weather = await fetchWeather(geo.latitude, geo.longitude);
+
+        renderCurrent(geo.name, geo.country, weather.current, weather.daily);
+        renderForecast(weather.daily);
+
+        localStorage.setItem('lastCity', geo.name);
+        hideAllStatus();
+    } catch (err) {
+        showStatus('error', err.message || '查询失败，请检查网络或稍后重试');
+    } finally {
+        els.searchBtn.disabled = false;
+    }
+}
+
+els.cityInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleSearch();
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+    const last = localStorage.getItem('lastCity');
+    if (last) {
+        els.cityInput.value = last;
+        handleSearch();
+    }
+});
+</script>
+
+</body>
+</html>
