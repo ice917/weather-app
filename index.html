@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#0ea5e9" id="themeColor">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://*.open-meteo.com https://*.bigdatacloud.net; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <title>实时天气</title>
     <link rel="manifest" href="manifest.json">
     <style>
@@ -702,6 +704,62 @@
 </div>
 
 <script>
+/* ==================== Security Sandbox ==================== */
+(function() {
+    'use strict';
+
+    // 1. XSS HTML 转义
+    window.escapeHtml = function(str) {
+        if (typeof str !== 'string') return String(str);
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    // 2. 禁用危险动态代码执行
+    window.eval = function() { console.warn('[Security] eval is disabled'); };
+    window.Function = function() { console.warn('[Security] Function constructor is disabled'); };
+
+    // 3. 拦截弹窗与跳转（生产环境静默阻止）
+    const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isDev) {
+        window.open = function() { console.warn('[Security] window.open blocked'); return null; };
+        window.alert = function(msg) { console.warn('[Security] alert blocked:', msg); };
+        window.confirm = function() { console.warn('[Security] confirm blocked'); return false; };
+        window.prompt = function() { console.warn('[Security] prompt blocked'); return null; };
+    }
+
+    // 4. Fetch 域名白名单校验（防止恶意链接、虚假天气弹窗、植入式风险内容）
+    const ALLOWED_DOMAINS = [
+        'geocoding-api.open-meteo.com',
+        'api.open-meteo.com',
+        'api.bigdatacloud.net'
+    ];
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        let url;
+        try {
+            url = new URL(input instanceof Request ? input.url : input, location.href);
+        } catch (e) {
+            return Promise.reject(new Error('Invalid URL'));
+        }
+        const isAllowed = ALLOWED_DOMAINS.some(d => url.hostname === d || url.hostname.endsWith('.' + d));
+        if (!isAllowed && url.origin !== location.origin) {
+            console.warn('[Security] Blocked fetch to unauthorized domain:', url.hostname);
+            return Promise.reject(new Error('Unauthorized domain'));
+        }
+        return originalFetch.apply(this, arguments);
+    };
+
+    // 5. 防点击劫持（禁止被嵌入 iframe）
+    if (window.top !== window.self) {
+        window.top.location = window.self.location;
+    }
+})();
+
 /* ==================== City Data & Fuzzy Search ==================== */
 const CITY_DB = [
 {n:"北京",p:"bj"},{n:"上海",p:"sh"},{n:"天津",p:"tj"},{n:"重庆",p:"cq"},
@@ -836,12 +894,16 @@ function renderSuggest(matches) {
     }
     suggestMatches = matches;
     suggestActive = -1;
-    box.innerHTML = matches.map((c, i) => `
-        <div class="suggest-item" data-index="${i}" data-city="${c.n}" onclick="selectSuggest('${c.n}')">
-            <span class="suggest-city">${c.n}</span>
-            <span class="suggest-tag">${c.p.toUpperCase()}</span>
+    box.innerHTML = matches.map((c, i) => {
+        const safeName = escapeHtml(c.n);
+        const safePinyin = escapeHtml(c.p.toUpperCase());
+        return `
+        <div class="suggest-item" data-index="${i}" data-city="${safeName}" onclick="selectSuggest('${safeName}')">
+            <span class="suggest-city">${safeName}</span>
+            <span class="suggest-tag">${safePinyin}</span>
         </div>
-    `).join('');
+        `;
+    }).join('');
     box.classList.add('show');
 }
 
@@ -1152,7 +1214,8 @@ function renderSavedCities() {
     row.innerHTML = '<div class="tag-title">收藏城市</div>' +
         savedCities.map((c, i) => {
             const isActive = currentCity && c.name === currentCity.name;
-            return `<div class="tag ${isActive ? 'active' : ''}" onclick="loadSavedCity(${i})">${c.name}</div>`;
+            const safeName = escapeHtml(c.name);
+            return `<div class="tag ${isActive ? 'active' : ''}" onclick="loadSavedCity(${i})">${safeName}</div>`;
         }).join('');
 }
 
@@ -1161,7 +1224,10 @@ function renderHistory() {
     if (!searchHistory.length) { row.style.display = 'none'; return; }
     row.style.display = 'flex';
     row.innerHTML = '<div class="tag-title">最近搜索</div>' +
-        searchHistory.map(name => `<div class="tag" onclick="quickSearch('${name}')">${name}</div>`).join('');
+        searchHistory.map(name => {
+            const safeName = escapeHtml(name);
+            return `<div class="tag" onclick="quickSearch('${safeName}')">${safeName}</div>`;
+        }).join('');
 }
 
 function quickSearch(name) {
