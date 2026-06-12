@@ -187,6 +187,58 @@
             justify-content: center;
         }
 
+        .search-suggest {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            max-height: 260px;
+            overflow-y: auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            z-index: 100;
+            display: none;
+            padding: 6px;
+        }
+
+        .search-suggest.show { display: block; animation: fadeInUp 0.2s ease; }
+
+        .suggest-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-main);
+            transition: background 0.15s;
+        }
+
+        .suggest-item:hover, .suggest-item.active {
+            background: var(--card-bg);
+        }
+
+        .suggest-item .suggest-city { font-weight: 500; }
+        .suggest-item .suggest-tag {
+            font-size: 11px;
+            color: var(--text-light);
+            background: rgba(14,165,233,0.08);
+            padding: 2px 8px;
+            border-radius: 8px;
+        }
+
+        .suggest-empty {
+            padding: 14px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
         .search-btn {
             padding: 14px 22px;
             border: none;
@@ -524,6 +576,7 @@
             <button class="locate-btn" id="locateBtn" onclick="handleAutoLocate()" title="自动定位">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
             </button>
+            <div class="search-suggest" id="searchSuggest"></div>
         </div>
         <button class="search-btn" id="searchBtn" onclick="handleSearch()">查询</button>
     </div>
@@ -646,6 +699,171 @@
 </div>
 
 <script>
+/* ==================== City Data & Fuzzy Search ==================== */
+const CITY_DB = [
+{n:"北京",p:"bj"},{n:"上海",p:"sh"},{n:"天津",p:"tj"},{n:"重庆",p:"cq"},
+{n:"哈尔滨",p:"heb"},{n:"长春",p:"cc"},{n:"沈阳",p:"sy"},{n:"大连",p:"dl"},
+{n:"石家庄",p:"sjz"},{n:"唐山",p:"ts"},{n:"保定",p:"bd"},{n:"邯郸",p:"hd"},
+{n:"秦皇岛",p:"qhd"},{n:"张家口",p:"zjk"},{n:"廊坊",p:"lf"},{n:"邢台",p:"xt"},
+{n:"济南",p:"jn"},{n:"青岛",p:"qd"},{n:"烟台",p:"yt"},{n:"潍坊",p:"wf"},
+{n:"临沂",p:"ly"},{n:"淄博",p:"zb"},{n:"济宁",p:"ji"},{n:"威海",p:"wh"},
+{n:"菏泽",p:"hz"},{n:"日照",p:"rz"},{n:"东营",p:"dy"},{n:"泰安",p:"ta"},
+{n:"郑州",p:"zz"},{n:"洛阳",p:"ly"},{n:"南阳",p:"ny"},{n:"新乡",p:"xx"},
+{n:"开封",p:"kf"},{n:"安阳",p:"ay"},{n:"许昌",p:"xc"},{n:"平顶山",p:"pds"},
+{n:"焦作",p:"jz"},{n:"商丘",p:"sq"},{n:"信阳",p:"xy"},{n:"周口",p:"zk"},
+{n:"南京",p:"nj"},{n:"苏州",p:"sz"},{n:"无锡",p:"wx"},{n:"常州",p:"cz"},
+{n:"徐州",p:"xz"},{n:"南通",p:"nt"},{n:"扬州",p:"yz"},{n:"盐城",p:"yc"},
+{n:"淮安",p:"ha"},{n:"镇江",p:"zj"},{n:"泰州",p:"tz"},{n:"宿迁",p:"sq"},
+{n:"连云港",p:"lyg"},{n:"杭州",p:"hz"},{n:"宁波",p:"nb"},{n:"温州",p:"wz"},
+{n:"嘉兴",p:"jx"},{n:"绍兴",p:"sx"},{n:"金华",p:"jh"},{n:"台州",p:"tz"},
+{n:"湖州",p:"hu"},{n:"衢州",p:"qz"},{n:"丽水",p:"ls"},{n:"舟山",p:"zs"},
+{n:"合肥",p:"hf"},{n:"芜湖",p:"wh"},{n:"蚌埠",p:"bb"},{n:"阜阳",p:"fy"},
+{n:"安庆",p:"aq"},{n:"马鞍山",p:"mas"},{n:"宿州",p:"sz"},{n:"滁州",p:"cz"},
+{n:"六安",p:"la"},{n:"宣城",p:"xc"},{n:"池州",p:"cz"},{n:"亳州",p:"bz"},
+{n:"福州",p:"fz"},{n:"厦门",p:"xm"},{n:"泉州",p:"qz"},{n:"莆田",p:"pt"},
+{n:"漳州",p:"zz"},{n:"龙岩",p:"ly"},{n:"三明",p:"sm"},{n:"南平",p:"np"},
+{n:"宁德",p:"nd"},{n:"广州",p:"gz"},{n:"深圳",p:"sz"},{n:"东莞",p:"dg"},
+{n:"佛山",p:"fs"},{n:"中山",p:"zs"},{n:"珠海",p:"zh"},{n:"惠州",p:"hz"},
+{n:"汕头",p:"st"},{n:"江门",p:"jm"},{n:"湛江",p:"zj"},{n:"肇庆",p:"zq"},
+{n:"茂名",p:"mm"},{n:"揭阳",p:"jy"},{n:"清远",p:"qy"},{n:"韶关",p:"sg"},
+{n:"梅州",p:"mz"},{n:"阳江",p:"yj"},{n:"河源",p:"hy"},{n:"汕尾",p:"sw"},
+{n:"云浮",p:"yf"},{n:"潮州",p:"cz"},{n:"南宁",p:"nn"},{n:"柳州",p:"lz"},
+{n:"桂林",p:"gl"},{n:"北海",p:"bh"},{n:"玉林",p:"yl"},{n:"梧州",p:"wz"},
+{n:"钦州",p:"qz"},{n:"贵港",p:"gg"},{n:"百色",p:"bs"},{n:"贺州",p:"hz"},
+{n:"河池",p:"hc"},{n:"来宾",p:"lb"},{n:"防城港",p:"fcg"},{n:"海口",p:"hk"},
+{n:"三亚",p:"sy"},{n:"儋州",p:"dz"},{n:"三沙",p:"ss"},{n:"五指山",p:"wzs"},
+{n:"文昌",p:"wc"},{n:"琼海",p:"qh"},{n:"万宁",p:"wn"},{n:"东方",p:"df"},
+{n:"长沙",p:"cs"},{n:"株洲",p:"zz"},{n:"湘潭",p:"xt"},{n:"衡阳",p:"hy"},
+{n:"岳阳",p:"yy"},{n:"常德",p:"cd"},{n:"郴州",p:"cz"},{n:"邵阳",p:"sy"},
+{n:"怀化",p:"hh"},{n:"永州",p:"yz"},{n:"益阳",p:"yy"},{n:"娄底",p:"ld"},
+{n:"湘西",p:"xx"},{n:"张家界",p:"zjj"},{n:"武汉",p:"wh"},{n:"宜昌",p:"yc"},
+{n:"襄阳",p:"xy"},{n:"荆州",p:"jz"},{n:"黄冈",p:"hg"},{n:"孝感",p:"xg"},
+{n:"十堰",p:"sy"},{n:"黄石",p:"hs"},{n:"咸宁",p:"xn"},{n:"恩施",p:"es"},
+{n:"随州",p:"sz"},{n:"荆门",p:"jm"},{n:"鄂州",p:"ez"},{n:"成都",p:"cd"},
+{n:"绵阳",p:"my"},{n:"德阳",p:"dy"},{n:"南充",p:"nc"},{n:"宜宾",p:"yb"},
+{n:"自贡",p:"zg"},{n:"乐山",p:"ls"},{n:"泸州",p:"lz"},{n:"达州",p:"dz"},
+{n:"内江",p:"nj"},{n:"遂宁",p:"sn"},{n:"攀枝花",p:"pzh"},{n:"眉山",p:"ms"},
+{n:"广安",p:"ga"},{n:"雅安",p:"ya"},{n:"巴中",p:"bz"},{n:"广元",p:"gy"},
+{n:"资阳",p:"zy"},{n:"贵阳",p:"gy"},{n:"遵义",p:"zy"},{n:"六盘水",p:"lps"},
+{n:"安顺",p:"as"},{n:"铜仁",p:"tr"},{n:"毕节",p:"bj"},{n:"昆明",p:"km"},
+{n:"曲靖",p:"qj"},{n:"大理",p:"dl"},{n:"丽江",p:"lj"},{n:"昭通",p:"zt"},
+{n:"玉溪",p:"yx"},{n:"保山",p:"bs"},{n:"普洱",p:"pe"},{n:"临沧",p:"lc"},
+{n:"西双版纳",p:"xsbn"},{n:"拉萨",p:"ls"},{n:"日喀则",p:"rkz"},{n:"林芝",p:"lz"},
+{n:"昌都",p:"cd"},{n:"山南",p:"sn"},{n:"西安",p:"xa"},{n:"咸阳",p:"xy"},
+{n:"宝鸡",p:"bj"},{n:"渭南",p:"wn"},{n:"汉中",p:"hz"},{n:"榆林",p:"yl"},
+{n:"延安",p:"ya"},{n:"安康",p:"ak"},{n:"铜川",p:"tc"},{n:"商洛",p:"sl"},
+{n:"兰州",p:"lz"},{n:"天水",p:"ts"},{n:"酒泉",p:"jq"},{n:"张掖",p:"zy"},
+{n:"武威",p:"ww"},{n:"白银",p:"by"},{n:"平凉",p:"pl"},{n:"陇南",p:"ln"},
+{n:"西宁",p:"xn"},{n:"海东",p:"hd"},{n:"银川",p:"yc"},{n:"石嘴山",p:"szs"},
+{n:"吴忠",p:"wz"},{n:"固原",p:"gy"},{n:"中卫",p:"zw"},{n:"乌鲁木齐",p:"wlmq"},
+{n:"克拉玛依",p:"klmy"},{n:"吐鲁番",p:"tlf"},{n:"哈密",p:"hm"},{n:"喀什",p:"ks"},
+{n:"和田",p:"ht"},{n:"阿克苏",p:"aks"},{n:"伊犁",p:"yl"},{n:"南昌",p:"nc"},
+{n:"赣州",p:"gz"},{n:"九江",p:"jj"},{n:"上饶",p:"sr"},{n:"宜春",p:"yc"},
+{n:"吉安",p:"ja"},{n:"景德镇",p:"jdz"},{n:"萍乡",p:"px"},{n:"新余",p:"xy"},
+{n:"鹰潭",p:"yt"},{n:"抚州",p:"fz"},{n:"太原",p:"ty"},{n:"大同",p:"dt"},
+{n:"运城",p:"yc"},{n:"临汾",p:"lf"},{n:"晋中",p:"jz"},{n:"长治",p:"cz"},
+{n:"晋城",p:"jc"},{n:"阳泉",p:"yq"},{n:"朔州",p:"sz"},{n:"忻州",p:"xz"},
+{n:"吕梁",p:"ll"},{n:"呼和浩特",p:"hhht"},{n:"包头",p:"bt"},{n:"赤峰",p:"cf"},
+{n:"通辽",p:"tl"},{n:"鄂尔多斯",p:"eeds"},{n:"呼伦贝尔",p:"hlbe"},{n:"巴彦淖尔",p:"byne"},
+{n:"乌兰察布",p:"wlcb"},{n:"乌海",p:"wh"},{n:"鞍山",p:"as"},{n:"抚顺",p:"fs"},
+{n:"本溪",p:"bx"},{n:"丹东",p:"dd"},{n:"锦州",p:"jz"},{n:"营口",p:"yk"},
+{n:"阜新",p:"fx"},{n:"辽阳",p:"ly"},{n:"盘锦",p:"pj"},{n:"铁岭",p:"tl"},
+{n:"朝阳",p:"cy"},{n:"葫芦岛",p:"hld"},{n:"吉林",p:"jl"},{n:"四平",p:"sp"},
+{n:"辽源",p:"ly"},{n:"通化",p:"th"},{n:"白山",p:"bs"},{n:"松原",p:"sy"},
+{n:"白城",p:"bc"},{n:"延边",p:"yb"},{n:"齐齐哈尔",p:"qqhe"},{n:"牡丹江",p:"mdj"},
+{n:"佳木斯",p:"jms"},{n:"大庆",p:"dq"},{n:"鸡西",p:"jx"},{n:"双鸭山",p:"sys"},
+{n:"伊春",p:"yc"},{n:"七台河",p:"qth"},{n:"鹤岗",p:"hg"},{n:"黑河",p:"hh"},
+{n:"绥化",p:"sh"},{n:"大兴安岭",p:"dxal"},{n:"昆山",p:"ks"},{n:"江阴",p:"jy"},
+{n:"义乌",p:"yw"},{n:"慈溪",p:"cx"},{n:"晋江",p:"jj"},{n:"常熟",p:"cs"},
+{n:"张家港",p:"zjg"},{n:"太仓",p:"tc"},{n:"余姚",p:"yy"},{n:"乐清",p:"yq"},
+{n:"诸暨",p:"zj"},{n:"海宁",p:"hn"},{n:"桐乡",p:"tx"},{n:"瑞安",p:"ra"},
+{n:"温岭",p:"wl"},{n:"嘉善",p:"js"},{n:"象山",p:"xs"},{n:"浏阳",p:"ly"},
+{n:"宁乡",p:"nx"},{n:"醴陵",p:"ll"},{n:"浏阳",p:"ly"},{n:"邵东",p:"sd"},
+{n:"耒阳",p:"ly"},{n:"沅江",p:"yj"},{n:"汨罗",p:"ml"},{n:"临湘",p:"lx"},
+{n:"武冈",p:"wg"},{n:"常宁",p:"cn"},{n:"韶山",p:"ss"},{n:"湘乡",p:"xx"},
+{n:"韶山",p:"ss"},{n:"峨眉山",p:"ems"},{n:"都江堰",p:"djy"},{n:"彭州",p:"pz"},
+{n:"邛崃",p:"ql"},{n:"崇州",p:"cz"},{n:"简阳",p:"jy"},{n:"广汉",p:"gh"},
+{n:"什邡",p:"sf"},{n:"绵竹",p:"mz"},{n:"江油",p:"jy"},{n:"阆中",p:"lz"},
+{n:"华蓥",p:"hy"},{n:"万源",p:"wy"},{n:"西昌",p:"xc"},{n:"康定",p:"kd"},
+{n:"马尔康",p:"mek"},{n:"赤水",p:"cs"},{n:"清镇",p:"qz"},{n:"仁怀",p:"rh"},
+{n:"兴义",p:"xy"},{n:"凯里",p:"kl"},{n:"都匀",p:"dy"},{n:"福泉",p:"fq"},
+{n:"安宁",p:"an"},{n:"宣威",p:"xw"},{n:"楚雄",p:"cx"},{n:"个旧",p:"gj"},
+{n:"开远",p:"ky"},{n:"蒙自",p:"mz"},{n:"弥勒",p:"ml"},{n:"文山",p:"ws"},
+{n:"景洪",p:"jh"},{n:"瑞丽",p:"rl"},{n:"芒市",p:"ms"},{n:"香格里拉",p:"xgll"},
+{n:"腾冲",p:"tc"},{n:"峨眉山",p:"ems"},{n:"都江堰",p:"djy"},{n:"彭州",p:"pz"},
+{n:"邛崃",p:"ql"},{n:"崇州",p:"cz"},{n:"简阳",p:"jy"},{n:"广汉",p:"gh"}
+];
+
+let suggestActive = -1;
+let suggestMatches = [];
+
+function getCityMatches(query) {
+    const q = query.trim();
+    if (!q) return [];
+    const isEn = /^[a-zA-Z]+$/.test(q);
+    const lowerQ = q.toLowerCase();
+    let matches = [];
+
+    if (isEn) {
+        matches = CITY_DB.filter(c => c.p.startsWith(lowerQ));
+    } else {
+        matches = CITY_DB.filter(c => c.n.startsWith(q));
+    }
+
+    // Boost by history frequency
+    const hist = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+    matches.sort((a, b) => {
+        const ia = hist.indexOf(a.n);
+        const ib = hist.indexOf(b.n);
+        if (ia >= 0 && ib < 0) return -1;
+        if (ib >= 0 && ia < 0) return 1;
+        if (ia >= 0 && ib >= 0) return ia - ib;
+        return a.n.length - b.n.length;
+    });
+
+    return matches.slice(0, 8);
+}
+
+function renderSuggest(matches) {
+    const box = document.getElementById('searchSuggest');
+    if (!matches.length) {
+        box.innerHTML = '<div class="suggest-empty">无匹配城市，尝试输入拼音首字母</div>';
+        box.classList.add('show');
+        return;
+    }
+    suggestMatches = matches;
+    suggestActive = -1;
+    box.innerHTML = matches.map((c, i) => `
+        <div class="suggest-item" data-index="${i}" data-city="${c.n}" onclick="selectSuggest('${c.n}')">
+            <span class="suggest-city">${c.n}</span>
+            <span class="suggest-tag">${c.p.toUpperCase()}</span>
+        </div>
+    `).join('');
+    box.classList.add('show');
+}
+
+function selectSuggest(city) {
+    document.getElementById('cityInput').value = city;
+    hideSuggest();
+    quickSearch(city);
+}
+
+function hideSuggest() {
+    document.getElementById('searchSuggest').classList.remove('show');
+    suggestActive = -1;
+    suggestMatches = [];
+}
+
+function updateSuggestHighlight() {
+    document.querySelectorAll('.suggest-item').forEach((el, i) => {
+        el.classList.toggle('active', i === suggestActive);
+    });
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.search-input-wrap')) hideSuggest();
+});
+
 /* ==================== Service Worker ==================== */
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
@@ -1207,7 +1425,38 @@ els.swipeArea.addEventListener('touchend', e => {
 }, { passive: true });
 
 /* ==================== Init ==================== */
-els.cityInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSearch(); });
+els.cityInput.addEventListener('input', e => {
+    const val = e.target.value.trim();
+    if (!val) { hideSuggest(); return; }
+    renderSuggest(getCityMatches(val));
+});
+
+els.cityInput.addEventListener('keydown', e => {
+    const box = document.getElementById('searchSuggest');
+    if (!box.classList.contains('show')) {
+        if (e.key === 'Enter') handleSearch();
+        return;
+    }
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        suggestActive = Math.min(suggestActive + 1, suggestMatches.length - 1);
+        updateSuggestHighlight();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        suggestActive = Math.max(suggestActive - 1, -1);
+        updateSuggestHighlight();
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (suggestActive >= 0 && suggestMatches[suggestActive]) {
+            selectSuggest(suggestMatches[suggestActive].n);
+        } else {
+            hideSuggest();
+            handleSearch();
+        }
+    } else if (e.key === 'Escape') {
+        hideSuggest();
+    }
+});
 
 window.addEventListener('DOMContentLoaded', () => {
     loadSavedCities();
