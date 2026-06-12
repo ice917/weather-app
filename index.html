@@ -459,6 +459,7 @@
             overflow-x: auto;
             scrollbar-width: none;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
         }
         .hourly-scroll::-webkit-scrollbar { display: none; }
 
@@ -477,6 +478,7 @@
             display: flex;
             gap: 10px;
             padding-bottom: 8px;
+            width: max-content;
         }
 
         .hourly-item {
@@ -1401,7 +1403,13 @@ function renderHourly(hourly) {
     // Measure item centers to align chart points exactly above each hour
     const items = list.querySelectorAll('.hourly-item');
     const centers = Array.from(items).map(el => el.offsetLeft + el.offsetWidth / 2);
-    const W = list.scrollWidth || 640;
+    // Reliable total width: last item right edge, fallback to scrollWidth
+    let W = list.scrollWidth || 640;
+    if (items.length > 0) {
+        const last = items[items.length - 1];
+        const computedW = last.offsetLeft + last.offsetWidth;
+        if (computedW > W) W = computedW;
+    }
     const H = 120;
 
     const minT = Math.min(...temps) - 1;
