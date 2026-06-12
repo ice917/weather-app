@@ -464,7 +464,7 @@
         .hourly-chart-wrap svg {
             width: 100%;
             height: 100%;
-            overflow: visible;
+            display: block;
         }
 
         .hourly-list {
@@ -549,6 +549,13 @@
             .card-header { flex-direction: column; gap: 6px; }
             .search-box { flex-direction: column; }
             .search-btn { width: 100%; }
+            .hourly-list { gap: 6px; }
+            .hourly-item { flex: 0 0 48px; }
+            .daily-list { gap: 8px; }
+            .daily-card { flex: 0 0 78px; padding: 12px 6px; }
+            .daily-date { font-size: 11px; }
+            .daily-icon { width: 32px; height: 32px; }
+            .daily-temp-range { font-size: 12px; }
         }
     </style>
 </head>
@@ -1372,11 +1379,10 @@ function renderHourly(hourly) {
     const times = hourly.time.slice(startIdx, startIdx + 24);
     const codes = hourly.weather_code.slice(startIdx, startIdx + 24);
 
-    // SVG chart
-    const minT = Math.min(...temps) - 1;
-    const maxT = Math.max(...temps) + 1;
-    const range = maxT - minT || 1;
-    const W = 640, H = 120, P = 16;
+    // SVG chart — dynamic width to match container, no distortion
+    const chartWrap = document.getElementById('hourlyChart');
+    const W = Math.max(chartWrap.clientWidth || chartWrap.offsetWidth || 320, 300);
+    const H = 120, P = 14;
 
     let points = '';
     let areaPoints = `${P},${H} `;
@@ -1389,13 +1395,14 @@ function renderHourly(hourly) {
     areaPoints += `${W - P},${H}`;
 
     const labels = [];
-    for (let i = 0; i < temps.length; i += 3) {
+    const labelStep = W < 400 ? 4 : 3;
+    for (let i = 0; i < temps.length; i += labelStep) {
         const x = P + (i / (temps.length - 1)) * (W - P * 2);
         labels.push(`<text x="${x}" y="${H - 2}" text-anchor="middle" font-size="10" fill="var(--text-light)">${formatHour(times[i])}</text>`);
     }
 
-    document.getElementById('hourlyChart').innerHTML = `
-        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    chartWrap.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
             <defs>
                 <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.3"/>
