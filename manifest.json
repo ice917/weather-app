@@ -1,0 +1,16 @@
+{
+  "name": "实时天气 - PWA气象工具",
+  "short_name": "实时天气",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#e0f2fe",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230ea5e9' width='192' height='192' rx='32'/%3E%3Ccircle cx='96' cy='96' r='44' fill='%23fff'/%3E%3Cg stroke='%230ea5e9' stroke-width='6' stroke-linecap='round'%3E%3Cline x1='96' y1='32' x2='96' y2='48'/%3E%3Cline x1='96' y1='144' x2='96' y2='160'/%3E%3Cline x1='32' y1='96' x2='48' y2='96'/%3E%3Cline x1='144' y1='96' x2='160' y2='96'/%3E%3Cline x1='50' y1='50' x2='62' y2='62'/%3E%3Cline x1='130' y1='130' x2='142' y2='142'/%3E%3Cline x1='50' y1='142' x2='62' y2='130'/%3E%3Cline x1='130' y1='62' x2='142' y2='50'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
