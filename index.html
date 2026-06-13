@@ -1374,6 +1374,7 @@ function initWeatherCanvas() {
     weatherCanvas.id = 'weatherCanvas';
     weatherCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
     fx.appendChild(weatherCanvas);
+    weatherCtx = weatherCanvas.getContext('2d');
     resizeWeatherCanvas();
     window.addEventListener('resize', resizeWeatherCanvas);
     animateWeather();
@@ -1549,7 +1550,7 @@ function drawWeatherParticles() {
             weatherCtx.beginPath();
             weatherCtx.moveTo(p.x, p.y);
             weatherCtx.lineTo(p.x - p.length * p.angle, p.y + p.length);
-            weatherCtx.strokeStyle = `rgba(180,200,230,${p.opacity})`;
+            weatherCtx.strokeStyle = `rgba(140,170,220,${p.opacity})`;
             weatherCtx.lineWidth = p.width;
             weatherCtx.lineCap = 'round';
             weatherCtx.stroke();
